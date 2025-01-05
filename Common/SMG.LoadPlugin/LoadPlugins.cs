@@ -1,5 +1,7 @@
 ﻿using DevExpress.XtraTab;
 using SMG.DBConfig;
+using SMG.Logging;
+using SMG.Module;
 using SMG.Plugins;
 using System;
 using System.Collections.Generic;
@@ -105,24 +107,59 @@ namespace SMG.LoadPlugin
                     Type[] types = pluginAssembly.GetTypes();
                     foreach (Type type in types)
                     {
-                        if (type.IsSubclassOf(typeof(System.Windows.Forms.UserControl))) // Kiểm tra xem type có phải là UserControl hay không
+                        if (type.IsSubclassOf(typeof(System.Windows.Forms.UserControl)))
                         {
-                            // 3. Tạo Instance của UserControl
-                            System.Windows.Forms.UserControl pluginControl = (System.Windows.Forms.UserControl)Activator.CreateInstance(type);
+                            // Kiểm tra xem lớp có constructor không tham số
+                            ConstructorInfo constructorNoParam = type.GetConstructor(Type.EmptyTypes);
 
-                            // 4. Tạo TabPage và thêm UserControl vào
-                            XtraTabPage tabPage = new XtraTabPage();
-                            tabPage.Text = plugin.PLUGIN_NAME; // Đặt tên tab
-                            tabPage.ShowCloseButton = DevExpress.Utils.DefaultBoolean.True;
-                            tabPage.Controls.Add(pluginControl);
-                            pluginControl.Dock = DockStyle.Fill; // Để UserControl lấp đầy TabPage
+                            // Kiểm tra xem lớp có constructor nhận tham số ModuleData
+                            ConstructorInfo constructorWithParam = type.GetConstructor(new Type[] { typeof(ModuleData) });
 
-                            
-                            result = tabPage;
+                            if (constructorWithParam != null)
+                            {
+                                // Tạo đối tượng từ constructor với tham số ModuleData
+                                ModuleData data = new ModuleData();  // Tạo hoặc lấy giá trị thích hợp cho tham số
+                                System.Windows.Forms.UserControl pluginControl =
+                                    (System.Windows.Forms.UserControl)constructorWithParam.Invoke(new object[] { data });
 
-                            break;
+                                // Tiến hành xử lý như trước
+                                XtraTabPage tabPage = new XtraTabPage();
+                                tabPage.Text = plugin.PLUGIN_NAME; // Đặt tên tab
+                                tabPage.ShowCloseButton = DevExpress.Utils.DefaultBoolean.True;
+                                tabPage.Controls.Add(pluginControl);
+                                pluginControl.Dock = DockStyle.Fill; // Để UserControl lấp đầy TabPage
+                                tabPage.Appearance.Header.ForeColor = System.Drawing.Color.Green;
+                                tabPage.Appearance.Header.Font = new System.Drawing.Font("Tahoma", 9, System.Drawing.FontStyle.Bold);
+
+                                result = tabPage;
+                                break;
+                            }
+                            else if (constructorNoParam != null)
+                            {
+                                // Nếu chỉ có constructor không tham số
+                                System.Windows.Forms.UserControl pluginControl =
+                                    (System.Windows.Forms.UserControl)constructorNoParam.Invoke(null);
+
+                                // Tiến hành xử lý như trước
+                                XtraTabPage tabPage = new XtraTabPage();
+                                tabPage.Text = plugin.PLUGIN_NAME; // Đặt tên tab
+                                tabPage.ShowCloseButton = DevExpress.Utils.DefaultBoolean.True;
+                                tabPage.Controls.Add(pluginControl);
+                                pluginControl.Dock = DockStyle.Fill; // Để UserControl lấp đầy TabPage
+                                tabPage.Appearance.Header.ForeColor = System.Drawing.Color.Green;
+                                tabPage.Appearance.Header.Font = new System.Drawing.Font("Tahoma", 9, System.Drawing.FontStyle.Bold);
+
+                                result = tabPage;
+                                break;
+                            }
+                            else
+                            {
+                                error = "Plugin không có constructor hợp lệ.";
+                                return null;
+                            }
                         }
                     }
+
                 }
                 else
                 {
@@ -133,6 +170,7 @@ namespace SMG.LoadPlugin
             }
             catch (Exception ex)
             {
+                LogSystem.Error(ex);
                 error = ($"Có lỗi xảy ra khi mở module: {ex.Message}");
                 return null;
             }

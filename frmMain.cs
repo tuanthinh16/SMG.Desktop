@@ -5,6 +5,7 @@ using SMG.DB.Helpper;
 using SMG.LoadPlugin;
 using SMG.Logging;
 using SMG.Models;
+using SMG.Module;
 using SMG.Plugins;
 using System;
 using System.Collections.Generic;
@@ -50,7 +51,7 @@ namespace SMG.Desktop
                 List<SMG.Models.Plugins> plugins = new List<SMG.Models.Plugins>();
                 plugins = LoadPluginData().Where(s=>s.IS_ACTIVE == SMG.DBConfig.Common.IS_ACTIVE__TRUE).ToList();
                 RibbonPage ribbonPage = this.ribbonControl1.Pages[0]; 
-                RibbonPageGroup ribbonPageGroup = new RibbonPageGroup("Plugins"); 
+                RibbonPageGroup ribbonPageGroup = new RibbonPageGroup("Main menu"); 
 
                 foreach (SMG.Models.Plugins plugin in plugins)
                 {
@@ -76,10 +77,12 @@ namespace SMG.Desktop
 
                     barButtonItem.ItemClick += (sender, e) =>
                     {
-                        if(plugin.PLUGIN_TYPE_ID == 1)
+                        ModuleData module = new ModuleData();
+                        module.ModuleName = plugin.PLUGIN_NAME;
+                        module.ModuleLink = plugin.PLUGIN_LINK;
+                        listArgs.Add(module);
+                        if (plugin.PLUGIN_TYPE_ID == 1)
                         {
-                            
-                            //this.xtraTabControl1.TabPages.Clear();
                             XtraTabPage tab = LoadPlugins.LoadUC(plugin, ref error, listArgs);
                             if(tab != null)
                             {
@@ -87,10 +90,6 @@ namespace SMG.Desktop
                                 this.xtraTabControl1.SelectedTabPage = tab;
                                 
                             }
-                            
-
-
-
                         }
                         else
                             LoadPlugins.OpenPlugin(plugin.PLUGIN_LINK, ref error, listArgs);
@@ -116,8 +115,8 @@ namespace SMG.Desktop
             try
             {
                 List<SMG.Models.Plugins> lstPlugins = new List<SMG.Models.Plugins>();
-                PluginHelpper pluginHelpper = new PluginHelpper();
-                lstPlugins = pluginHelpper.LoadPluginsFromDatabase(0, 100);
+                PluginHelper pluginHelpper = new PluginHelper();
+                lstPlugins = pluginHelpper.LoadPluginsFromDatabaseAsync(0, 100,null).Result;
                 if (lstPlugins != null && lstPlugins.Count > 0)
                 {
                     result.AddRange(lstPlugins);
@@ -142,6 +141,34 @@ namespace SMG.Desktop
                     xtraTabControl1.TabPages.Remove(tabPage);
                     tabPage.Dispose(); // Giải phóng tài nguyên
                 }
+            }
+            catch (Exception ex)
+            {
+
+                LogSystem.Error(ex);
+            }
+        }
+
+        private void bbtReport_ItemClick(object sender, ItemClickEventArgs e)
+        {
+            try
+            {
+                string error = string.Empty;
+                List<object> listArgs = new List<object>();
+                ModuleData module = new ModuleData();
+                SMG.Models.Plugins plugin = new SMG.Models.Plugins();
+                module.ModuleName = plugin.PLUGIN_NAME = "Report";
+                module.ModuleLink = plugin.PLUGIN_LINK = "SMG.UC.Report";
+                listArgs.Add(module);
+                
+                XtraTabPage tab = LoadPlugins.LoadUC(plugin, ref error, listArgs);
+                if (tab != null)
+                {
+                    this.xtraTabControl1.TabPages.Add(tab);
+                    this.xtraTabControl1.SelectedTabPage = tab;
+
+                }
+                
             }
             catch (Exception ex)
             {

@@ -78,7 +78,6 @@
     <EmbeddedResource Include="frmListPlugin.resx">
       <DependentUpon>frmListPlugin.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Properties\licenses.licx" />
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
@@ -93,6 +92,10 @@
     <None Include="Resources\icons8-unlock-16.png" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\ADO\SMG.Module\SMG.Module.csproj">
+      <Project>{b6965bb1-e227-4ea7-9cb6-aacc28978901}</Project>
+      <Name>SMG.Module</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\api\SMG.DB.Helpper\SMG.DB.Helpper.csproj">
       <Project>{de6801f0-c974-4f59-b58d-fea66e9286b9}</Project>
       <Name>SMG.DB.Helpper</Name>

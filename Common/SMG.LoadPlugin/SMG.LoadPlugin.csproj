@@ -37,6 +37,7 @@
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
     <Reference Include="System.Web" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
@@ -51,9 +52,17 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\ADO\SMG.Module\SMG.Module.csproj">
+      <Project>{B6965BB1-E227-4EA7-9CB6-AACC28978901}</Project>
+      <Name>SMG.Module</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\Lib\SMG.DBConfig\SMG.DBConfig.csproj">
       <Project>{5ce07f00-28d1-429e-8963-e3d3572c533c}</Project>
       <Name>SMG.DBConfig</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Lib\SMG.Logging\SMG.Logging.csproj">
+      <Project>{D5DD42ED-BF26-401C-82BA-EBE17598DFB5}</Project>
+      <Name>SMG.Logging</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\Lib\SMG.Models\SMG.Models.csproj">
       <Project>{2e1f2b1e-6d8f-4de8-9943-4556f04f7793}</Project>

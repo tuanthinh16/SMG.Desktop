@@ -4,9 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SMG.DB.Helpper
+namespace SMN.Report.SMN00001
 {
-    public class Class1
+    public class SMN00001RDO : SMG.Models.Plugins
     {
+
     }
 }

@@ -1,53 +1,58 @@
 ﻿using Oracle.ManagedDataAccess.Client;
+using SMG.DB.Helper;
 using SMG.Logging;
 using SMG.Models;
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace SMG.DB.Helpper
 {
-    public class PluginHelpper : DBHelpper
+    public class PluginHelper
     {
-        public PluginHelpper() : base() { }
+        public PluginHelper() : base() { }
 
         // Semaphore để giới hạn số lượng thread kết nối đồng thời
         private static SemaphoreSlim semaphore = new SemaphoreSlim(5); // Ví dụ: tối đa 5 luồng
 
         // Phương thức lấy plugin từ cơ sở dữ liệu
-        public List<Plugins> LoadPluginsFromDatabase(int start, int limit)
+        public async Task<List<Plugins>> LoadPluginsFromDatabaseAsync(int? start, int? limit, string subQuery)
         {
             var plugins = new List<Plugins>();
 
             try
             {
-                // Thử khóa semaphore để hạn chế số lượng luồng đồng thời
-                semaphore.Wait();
+                var dbHelper = new DBHelper();
+                
 
-                using (var connection = OpenConnection())  // Dùng phương thức mở kết nối từ DBHelpper
+                string query = @"SELECT *
+                            FROM (
+                                SELECT SMN_PLUGINS.*, ROW_NUMBER() OVER (ORDER BY CREATE_TIME) AS ROW_NUM
+                                FROM SMN_PLUGINS
+                            )
+                            WHERE 1=1 ";
+
+                if (start.HasValue && limit.HasValue)
                 {
-                    LogSystem.Debug("Connect successfully");
+                    query += " AND ROW_NUM BETWEEN :start AND :limit ";
+                    query = query.Replace(":start", start.ToString());
+                    query = query.Replace(":limit", limit.ToString());
+                }
+                if (!string.IsNullOrEmpty(subQuery))
+                {
+                    query += subQuery;
+                }
 
-                    // Sử dụng tham số start và limit trong truy vấn để lấy dữ liệu theo phân trang
-                    string query = string.Format(@"
-                                SELECT ID, PLUGIN_NAME, PLUGIN_LINK, IS_ACTIVE, CREATE_TIME, CREATOR, MODIFIER, MODIFY_TIME, PLUGIN_GROUP_ID,PLUGIN_TYPE_ID,ICON
-                                FROM (
-                                    SELECT ID, PLUGIN_NAME, PLUGIN_LINK, IS_ACTIVE, CREATE_TIME, CREATOR, MODIFIER, MODIFY_TIME, PLUGIN_GROUP_ID,PLUGIN_TYPE_ID,ICON,
-                                           ROW_NUMBER() OVER (ORDER BY CREATE_TIME) AS ROW_NUM
-                                    FROM SMN_PLUGINS
-                                    
-                                )
-                                WHERE ROW_NUM BETWEEN {0} AND {1}", start,limit);
-
-                    // Cập nhật tham số start và end cho việc phân trang
+                // Mở kết nối bất đồng bộ
+                using (var connection = await dbHelper.OpenConnectionAsync())
+                {
                     var command = new OracleCommand(query, connection);
 
-                    LogSystem.Debug(command.CommandText);
 
                     using (var reader = command.ExecuteReader())
                     {
-                        // Đọc dữ liệu và ánh xạ vào đối tượng Plugin
-                        while (reader.Read())
+                        while (await reader.ReadAsync())
                         {
                             plugins.Add(new Plugins
                             {
@@ -69,63 +74,103 @@ namespace SMG.DB.Helpper
             }
             catch (OracleException ex)
             {
-                // Log lỗi kết nối Oracle tại đây (nếu cần thiết)
                 LogSystem.Error("Error: " + ex.Message);
             }
             finally
             {
-                // Đảm bảo rằng semaphore được giải phóng sau khi hoàn thành
-                semaphore.Release();
+                semaphore.Release();  // Giải phóng semaphore sau khi hoàn thành
             }
 
             return plugins;
         }
 
 
-        // Thêm Plugin mới
-        public bool AddPlugin(Plugins plugin, ref string error)
+        public async Task<List<Plugins>> FreeQueryAsync(string query)
         {
+            List<Plugins> result = new List<Plugins>();
             try
             {
-                using (var connection = OpenConnection())
+                var dbHelper = new DBHelper();
+                using (var connection = await dbHelper.OpenConnectionAsync())
+                {
+                    var command = new OracleCommand(query, connection);
+                    using (var reader = command.ExecuteReader())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            result.Add(new Plugins
+                            {
+                                ID = reader.GetInt64(reader.GetOrdinal("ID")),
+                                PLUGIN_NAME = reader.GetString(reader.GetOrdinal("PLUGIN_NAME")),
+                                PLUGIN_LINK = reader.GetString(reader.GetOrdinal("PLUGIN_LINK")),
+                                IS_ACTIVE = reader.GetInt16(reader.GetOrdinal("IS_ACTIVE")),
+                                CREATE_TIME = reader.GetInt64(reader.GetOrdinal("CREATE_TIME")),
+                                CREATOR = reader.GetString(reader.GetOrdinal("CREATOR")),
+                                MODIFIER = reader.IsDBNull(reader.GetOrdinal("MODIFIER")) ? null : reader.GetString(reader.GetOrdinal("MODIFIER")),
+                                MODIFY_TIME = reader.IsDBNull(reader.GetOrdinal("MODIFY_TIME")) ? 0 : reader.GetInt64(reader.GetOrdinal("MODIFY_TIME")),
+                                PLUGIN_GROUP_ID = reader.IsDBNull(reader.GetOrdinal("PLUGIN_GROUP_ID")) ? (long?)null : reader.GetInt64(reader.GetOrdinal("PLUGIN_GROUP_ID")),
+                                PLUGIN_TYPE_ID = reader.IsDBNull(reader.GetOrdinal("PLUGIN_TYPE_ID")) ? (long?)null : reader.GetInt64(reader.GetOrdinal("PLUGIN_TYPE_ID")),
+                                ICON = reader.IsDBNull(reader.GetOrdinal("ICON")) ? null : reader.GetString(reader.GetOrdinal("ICON"))
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogSystem.Error(ex);
+            }
+
+            return result;
+        }
+
+        // Thêm Plugin mới
+        public async Task<(bool, string)> AddPluginAsync(Plugins plugin)
+        {
+            string error = string.Empty;
+            try
+            {
+                var dbHelper = new DBHelper();
+                using (var connection = await dbHelper.OpenConnectionAsync())
                 {
                     var command = new OracleCommand(
-                        "INSERT INTO SMN_PLUGINS (PLUGIN_NAME, PLUGIN_LINK, IS_ACTIVE, CREATE_TIME, CREATOR, PLUGIN_GROUP_ID,ICON) " +
-                        "VALUES (:PLUGIN_NAME, :PLUGIN_LINK, :IS_ACTIVE, :CREATE_TIME, :CREATOR, :PLUGIN_GROUP_ID,:ICON)", connection);
+                        "INSERT INTO SMN_PLUGINS (PLUGIN_NAME, PLUGIN_LINK, IS_ACTIVE, CREATE_TIME, CREATOR, PLUGIN_GROUP_ID, ICON) " +
+                        "VALUES (:PLUGIN_NAME, :PLUGIN_LINK, :IS_ACTIVE, :CREATE_TIME, :CREATOR, :PLUGIN_GROUP_ID, :ICON)", connection);
 
                     command.Parameters.Add(new OracleParameter(":PLUGIN_NAME", plugin.PLUGIN_NAME));
                     command.Parameters.Add(new OracleParameter(":PLUGIN_LINK", plugin.PLUGIN_LINK));
                     command.Parameters.Add(new OracleParameter(":IS_ACTIVE", plugin.IS_ACTIVE));
                     command.Parameters.Add(new OracleParameter(":CREATE_TIME", SMG.DateTimeHelpper.Convert.DateTimeToTimeNumber(DateTime.Now)));
                     command.Parameters.Add(new OracleParameter(":CREATOR", plugin.CREATOR));
-                    command.Parameters.Add(new OracleParameter(":ICON", plugin.ICON));
                     command.Parameters.Add(new OracleParameter(":PLUGIN_GROUP_ID", plugin.PLUGIN_GROUP_ID ?? (object)DBNull.Value));
+                    command.Parameters.Add(new OracleParameter(":ICON", plugin.ICON));
 
                     int result = command.ExecuteNonQuery();
-                    return result > 0;
+                    return (result > 0, error);  // Trả về tuple (thành công, lỗi nếu có)
                 }
             }
             catch (OracleException ex)
             {
                 LogSystem.Error("Error adding plugin: " + ex.Message);
                 error = ex.Message;
-                return false;
+                return (false, error);
             }
         }
 
 
         // Cập nhật Plugin
-        public bool UpdatePlugin(Plugins plugin, ref string error)
+        public async Task<(bool, string)> UpdatePluginAsync(Plugins plugin)
         {
+            string error = string.Empty;
             try
             {
-                using (var connection = OpenConnection())
+                var dbHelper = new DBHelper();
+                using (var connection = await dbHelper.OpenConnectionAsync())
                 {
-                    // Xây dựng câu lệnh SQL với các trường cần cập nhật
                     var query = "UPDATE SMN_PLUGINS SET ";
-
-                    // Kiểm tra từng trường có dữ liệu để cập nhật
                     List<OracleParameter> parameters = new List<OracleParameter>();
+
+                    // Thêm các trường cần cập nhật
                     if (!string.IsNullOrEmpty(plugin.PLUGIN_NAME))
                     {
                         AddSubQuery(ref query, "PLUGIN_NAME", plugin.PLUGIN_NAME, ref parameters);
@@ -153,25 +198,24 @@ namespace SMG.DB.Helpper
                     }
                     query += "MODIFY_TIME = :MODIFY_TIME WHERE ID = :ID";
 
-                    // Thêm tham số cho MODIFY_TIME và ID
                     parameters.Add(new OracleParameter(":MODIFY_TIME", SMG.DateTimeHelpper.Convert.DateTimeToTimeNumber(DateTime.Now)));
                     parameters.Add(new OracleParameter(":ID", plugin.ID));
 
-                    // Tạo câu lệnh SQL cuối cùng
                     var command = new OracleCommand(query, connection);
                     command.Parameters.AddRange(parameters.ToArray());
 
                     int result = command.ExecuteNonQuery();
-                    return result > 0;
+                    return (result > 0, error);  // Trả về tuple (thành công, lỗi nếu có)
                 }
             }
             catch (OracleException ex)
             {
                 LogSystem.Error("Error updating plugin: " + ex.Message);
                 error = ex.Message;
-                return false;
+                return (false, error);
             }
         }
+
 
         private void AddSubQuery(ref string query, string fieldName, object fieldValue, ref List<OracleParameter> parameters)
         {
@@ -181,31 +225,36 @@ namespace SMG.DB.Helpper
                 parameters.Add(new OracleParameter($":{fieldName}", fieldValue));
             }
         }
+
         // Xóa Plugin
-        public bool DeletePlugin(long pluginId, ref string error)
+        public async Task<(bool, string)> DeletePluginAsync(long pluginId)
         {
+            string error = string.Empty;
             try
             {
-                if(pluginId <= 0)
+                if (pluginId <= 0)
                 {
                     error = "Invalid plugin ID";
-                    return false;
+                    return (false, error);
                 }
-                using (var connection = OpenConnection())
+
+                var dbHelper = new DBHelper();
+                using (var connection = await dbHelper.OpenConnectionAsync())
                 {
                     var command = new OracleCommand("DELETE FROM SMN_PLUGINS WHERE ID = :ID", connection);
                     command.Parameters.Add(new OracleParameter(":ID", pluginId));
 
                     int result = command.ExecuteNonQuery();
-                    return result > 0;
+                    return (result > 0, error);  // Trả về tuple (thành công, lỗi nếu có)
                 }
             }
             catch (OracleException ex)
             {
                 LogSystem.Error("Error deleting plugin: " + ex.Message);
                 error = ex.Message;
-                return false;
+                return (false, error);
             }
         }
+
     }
 }

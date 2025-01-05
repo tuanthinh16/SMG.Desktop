@@ -2,6 +2,7 @@
 using SMG.DB.Helpper;
 using SMG.Logging;
 using SMG.Models;
+using SMG.Module;
 using SMG.TokenManager;
 using System;
 using System.Collections.Generic;
@@ -20,16 +21,22 @@ namespace SMG.Plugins.ListPlugin
     {
         private int ActionType = -1;
         SMG.Models.Plugins currentPlugin = null;
-        PluginHelpper pluginHelpper = null;
-        public frmListPlugin()
+        PluginHelper pluginHelpper = null;
+        ModuleData moduleData = null;
+        public frmListPlugin(ModuleData module)
         {
+            this.moduleData = module;
             InitializeComponent();
         }
         private void frmListPlugin_Load(object sender, EventArgs e)
         {
             try
             {
-                pluginHelpper = new PluginHelpper();
+                if(this.moduleData != null)
+                {
+                    this.Text = this.moduleData.ModuleName;
+                }
+                pluginHelpper = new PluginHelper();
                 ActionType = SMG.GlobalVariables.ActionType.ACCTION__ADD;
                 InitDataToGrid();
                 InitDataCboType();
@@ -104,8 +111,8 @@ namespace SMG.Plugins.ListPlugin
             {
                 List<SMG.Models.Plugins> lstPlugins = new List<SMG.Models.Plugins>();
 
-                PluginHelpper pluginHelpper = new PluginHelpper();
-                lstPlugins = pluginHelpper.LoadPluginsFromDatabase(0, 100);
+                PluginHelper pluginHelpper = new PluginHelper();
+                lstPlugins = pluginHelpper.LoadPluginsFromDatabaseAsync(0, 100,null).Result;
                 if(lstPlugins != null && lstPlugins.Count > 0)
                 {
                     gridControlPlugin.DataSource = lstPlugins;
@@ -136,12 +143,12 @@ namespace SMG.Plugins.ListPlugin
                         if (e.Column.FieldName == "MODIFY_TIME_STR")
                         {
                             DateTime create = SMG.DateTimeHelpper.Convert.TimeNumberToDateTime(data.MODIFY_TIME);
-                            e.Value = create != DateTime.MinValue ? create.ToString("dd/MM/yyyy hh:MM:ss") : null;
+                            e.Value = create != DateTime.MinValue ? create.ToString("dd/MM/yyyy HH:mm:ss") : null;
                         }
                         if(e.Column.FieldName == "CREATE_TIME_STR")
                         {
                             DateTime create = SMG.DateTimeHelpper.Convert.TimeNumberToDateTime(data.CREATE_TIME);
-                            e.Value = create != DateTime.MinValue ? create.ToString("dd/MM/yyyy hh:MM:ss") : null ;
+                            e.Value = create != DateTime.MinValue ? create.ToString("dd/MM/yyyy HH:mm:ss") : null ;
                         }
                     }
                 }
@@ -261,7 +268,7 @@ namespace SMG.Plugins.ListPlugin
         {
             try
             {
-                if (!Validation.ValidationRequiredControl(txtModuleName, dxErrorProvider1) || !Validation.ValidationRequiredControl(txtModuleLink, dxErrorProvider1)) return;
+                if (!Validation.ValidationRequiredControl(txtModuleName, dxErrorProvider1) || !Validation.ValidationRequiredControl(txtModuleLink, dxErrorProvider1) || !Validation.ValidationRequiredControl(cboType, dxErrorProvider1)) return;
                 
 
                 ProcessSave();
@@ -327,11 +334,11 @@ namespace SMG.Plugins.ListPlugin
                 }
                 
                 string error = string.Empty;
-                bool action_result = false;
 
-                action_result = ActionType == GlobalVariables.ActionType.ACCTION__ADD?  pluginHelpper.AddPlugin(plugins, ref error): pluginHelpper.UpdatePlugin(plugins, ref error);
-                if (action_result)
+                var result = ActionType == GlobalVariables.ActionType.ACCTION__ADD ?  pluginHelpper.AddPluginAsync(plugins): pluginHelpper.UpdatePluginAsync(plugins);
+                if (result != null && result.Result.Item1)
                 {
+                   
                     MessageBox.Show("Xử lý thành công!");
                     SaveImage();
                     InitDataToGrid();
@@ -339,7 +346,7 @@ namespace SMG.Plugins.ListPlugin
                 }
                 else
                 {
-                    MessageBox.Show(error, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(result.Result.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
             catch (Exception ex)
@@ -381,7 +388,7 @@ namespace SMG.Plugins.ListPlugin
         {
             try
             {
-                if (!Validation.ValidationRequiredControl(txtModuleName, dxErrorProvider1) || !Validation.ValidationRequiredControl(txtModuleLink, dxErrorProvider1)) return;
+                if (!Validation.ValidationRequiredControl(txtModuleName, dxErrorProvider1) || !Validation.ValidationRequiredControl(txtModuleLink, dxErrorProvider1) || !Validation.ValidationRequiredControl(cboType, dxErrorProvider1)) return;
 
 
                 ProcessSave();
@@ -407,7 +414,8 @@ namespace SMG.Plugins.ListPlugin
                 {
                     data.IS_ACTIVE = 1;
                     string error = string.Empty;
-                    if (pluginHelpper.UpdatePlugin(data, ref error))
+                    var result = pluginHelpper.UpdatePluginAsync(data);
+                    if (result != null && result.Result.Item1)
                     {
                         MessageBox.Show("Xử lý thành công!");
                         SaveImage();
@@ -435,7 +443,8 @@ namespace SMG.Plugins.ListPlugin
                 {
                     data.IS_ACTIVE = 0;
                     string error = string.Empty;
-                    if (pluginHelpper.UpdatePlugin(data, ref error))
+                    var result = pluginHelpper.UpdatePluginAsync(data);
+                    if (result != null && result.Result.Item1)
                     {
                         MessageBox.Show("Xử lý thành công!");
                         SaveImage();
@@ -444,7 +453,7 @@ namespace SMG.Plugins.ListPlugin
                     }
                     else
                     {
-                        MessageBox.Show(error, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show(result.Result.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
             }
@@ -463,7 +472,7 @@ namespace SMG.Plugins.ListPlugin
                 {
                     
                     string error = string.Empty;
-                    if (MessageBox.Show(this,"Bạn có chắc muốn xóa bỏ dữ liệu ?","Thông báo",MessageBoxButtons.YesNo)== DialogResult.Yes &&  pluginHelpper.DeletePlugin(data.ID, ref error))
+                    if (MessageBox.Show(this,"Bạn có chắc muốn xóa bỏ dữ liệu ?","Thông báo",MessageBoxButtons.YesNo)== DialogResult.Yes &&  pluginHelpper.DeletePluginAsync(data.ID).Result.Item1)
                     {
                         MessageBox.Show("Xử lý thành công!");
                         SaveImage();
@@ -479,6 +488,29 @@ namespace SMG.Plugins.ListPlugin
             catch (Exception ex)
             {
 
+                LogSystem.Error(ex);
+            }
+        }
+
+        private void frmListPlugin_KeyDown(object sender, KeyEventArgs e)
+        {
+            try
+            {
+                if(e.Control && e.KeyCode == Keys.S)
+                {
+                    btnEdit.PerformClick();
+                }
+                else if(e.Control && e.KeyCode == Keys.A)
+                {
+                    btnAdd.PerformClick();
+                }
+                else if (e.Control && e.KeyCode == Keys.R)
+                {
+                    btnReset.PerformClick();
+                }
+            }
+            catch (Exception ex)
+            {
                 LogSystem.Error(ex);
             }
         }

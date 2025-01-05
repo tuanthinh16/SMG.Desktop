@@ -1,4 +1,5 @@
 ﻿using SMG.Logging;
+using SMG.Module;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,7 +14,15 @@ namespace SMG.Plugins.ListPlugin
         {
 			try
 			{
-                frmListPlugin frm = new frmListPlugin();
+                ModuleData moduleData = null;
+                for (int i = 0; i < listArgs.Count; i++)
+                {
+                    if(listArgs[i] is ModuleData)
+                    {
+                        moduleData = (ModuleData)listArgs[i];
+                    }
+                }
+                frmListPlugin frm = new frmListPlugin(moduleData);
                 frm.ShowDialog();
             }
 			catch (Exception ex)
