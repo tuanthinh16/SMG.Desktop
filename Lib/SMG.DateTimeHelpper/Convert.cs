@@ -4,7 +4,7 @@ namespace SMG.DateTimeHelpper
 {
     public class Convert
     {
-        public static long DateTimeToTimeNumber(DateTime dateTime)
+        public static long? DateTimeToTimeNumber(DateTime dateTime)
         {
             // Chuyển đổi DateTime sang chuỗi có định dạng yyyyMMddHHmmss (24h)
             string timeString = dateTime.ToString("yyyyMMddHHmmss");
@@ -14,11 +14,11 @@ namespace SMG.DateTimeHelpper
             }
             else
             {
-                return 0; // Nếu không chuyển đổi được, trả về 0
+                return null; // Nếu không chuyển đổi được, trả về 0
             }
         }
 
-        public static DateTime TimeNumberToDateTime(long timeNumber)
+        public static DateTime? TimeNumberToDateTime(long timeNumber)
         {
             // Chuyển đổi long thành chuỗi và kiểm tra định dạng yyyyMMddHHmmss (24h)
             string timeString = timeNumber.ToString();
@@ -28,7 +28,7 @@ namespace SMG.DateTimeHelpper
             }
             else
             {
-                return DateTime.MinValue; 
+                return null; 
             }
         }
     }
