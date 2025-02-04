@@ -65,6 +65,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SMG.Plugins.ReportType", "P
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SMG.Plugins.ReportTemplate", "Plugins\SMG.Plugins.ReportTemplate\SMG.Plugins.ReportTemplate.csproj", "{C0B96E90-B676-4669-A3BC-A9F75F8306AE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SMG.Notify.Toast", "Lib\SMG.Notify.Toast\SMG.Notify.Toast.csproj", "{19B2E28C-BC28-457A-8DA2-04649F3E5408}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -167,6 +169,10 @@ Global
 		{C0B96E90-B676-4669-A3BC-A9F75F8306AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C0B96E90-B676-4669-A3BC-A9F75F8306AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C0B96E90-B676-4669-A3BC-A9F75F8306AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{19B2E28C-BC28-457A-8DA2-04649F3E5408}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{19B2E28C-BC28-457A-8DA2-04649F3E5408}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{19B2E28C-BC28-457A-8DA2-04649F3E5408}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{19B2E28C-BC28-457A-8DA2-04649F3E5408}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -195,5 +201,6 @@ Global
 		{07C66157-4184-4445-ABA9-C5A70D93C739} = {8D1A7219-9489-4DD6-9375-C22D0140A6B5}
 		{DC7F3AB6-F795-49B7-AA6C-784A78B73D1E} = {4D3CBA5F-0837-4468-9ED5-B3D7815BBF1C}
 		{C0B96E90-B676-4669-A3BC-A9F75F8306AE} = {4D3CBA5F-0837-4468-9ED5-B3D7815BBF1C}
+		{19B2E28C-BC28-457A-8DA2-04649F3E5408} = {3DD510EC-B81A-4C65-B7D3-23DFF25187E0}
 	EndGlobalSection
 EndGlobal

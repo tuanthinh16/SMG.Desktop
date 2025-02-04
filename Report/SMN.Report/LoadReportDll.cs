@@ -245,7 +245,7 @@ namespace SMN.Report
                 report.REPORT_JSON_FILTER = Filter;
                 report.REPORT_DETAIL_CODE = generatecode;
                 report.OUTPUT_FILE_NAME = reportData.REPORT_CODE + "_" + reportData.REPORT_NAME + "_" + report.REPORT_DETAIL_CODE + ".xlsx";
-                report.IS_ACTIVE = (short)1;
+                report.IS_ACTIVE = true;
                 var rs = reportTypeHelper.AddReportDetailAsync(report);
                 if (rs != null)
                 {

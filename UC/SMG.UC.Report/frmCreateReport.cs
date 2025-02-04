@@ -72,12 +72,12 @@ namespace SMG.UC.Report
                     }
                     if (filter.ContainsKey("TIME_FROM"))
                     {
-                        dtTimeFrom.DateTime = SMG.DateTimeHelpper.Convert.TimeNumberToDateTime((long)filter["TIME_FROM"]);
+                        dtTimeFrom.DateTime = SMG.DateTimeHelpper.Convert.TimeNumberToDateTime((long)filter["TIME_FROM"])??DateTime.Now;
 
                     }
                     if (filter.ContainsKey("TIME_TO"))
                     {
-                        dtTimeTo.DateTime = SMG.DateTimeHelpper.Convert.TimeNumberToDateTime((long)filter["TIME_TO"]);
+                        dtTimeTo.DateTime = SMG.DateTimeHelpper.Convert.TimeNumberToDateTime((long)filter["TIME_TO"]) ?? DateTime.Now;
 
                     }
                 }

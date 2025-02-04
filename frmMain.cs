@@ -49,7 +49,11 @@ namespace SMG.Desktop
             try
             {
                 List<SMG.Models.Plugins> plugins = new List<SMG.Models.Plugins>();
-                plugins = LoadPluginData().Where(s=>s.IS_ACTIVE == SMG.DBConfig.Common.IS_ACTIVE__TRUE).ToList();
+                var rs = LoadPluginDataAsync();
+                if(rs != null)
+                {
+                    plugins.AddRange(rs);
+                }
                 RibbonPage ribbonPage = this.ribbonControl1.Pages[0]; 
                 RibbonPageGroup ribbonPageGroup = new RibbonPageGroup("Main menu"); 
 
@@ -109,26 +113,26 @@ namespace SMG.Desktop
             }
         }
 
-        private List<Models.Plugins> LoadPluginData()
+        private List<Models.Plugins> LoadPluginDataAsync()
         {
             List<SMG.Models.Plugins> result = new List<Models.Plugins>();
             try
             {
                 List<SMG.Models.Plugins> lstPlugins = new List<SMG.Models.Plugins>();
                 PluginHelper pluginHelpper = new PluginHelper();
-                lstPlugins = pluginHelpper.LoadPluginsFromDatabaseAsync(0, 100,null).Result;
-                if (lstPlugins != null && lstPlugins.Count > 0)
+                var rs = pluginHelpper.FetchPluginsAsync();
+                if (rs != null && rs.Count > 0)
                 {
-                    result.AddRange(lstPlugins);
+                    result.AddRange(rs);
                 }
-                result.Add(new Models.Plugins() { ID = 3, PLUGIN_NAME = "Plugins", IS_ACTIVE=1,PLUGIN_LINK = "SMG.Plugins.ListPlugin", PLUGIN_TYPE_ID = 2, ICON = "module.png" });
+                result.Add(new Models.Plugins() { ID = 3, PLUGIN_NAME = "Plugins", IS_ACTIVE=true,PLUGIN_LINK = "SMG.Plugins.ListPlugin", PLUGIN_TYPE_ID = 2, ICON = "module.png" });
             }
             catch (Exception ex)
             {
                 result.Clear();
                 LogSystem.Error(ex);
             }
-            return result;
+            return result.Where(s => s.IS_ACTIVE).ToList();
         }
 
         private void xtraTabControl1_CloseButtonClick(object sender, EventArgs e)
