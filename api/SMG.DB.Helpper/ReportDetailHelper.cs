@@ -181,7 +181,7 @@ namespace SMG.DB.Helpper
                                 REPORT_NAME = reader.GetString(reader.GetOrdinal("REPORT_NAME")),
                                 REPORT_DETAIL_CODE = reader.GetString(reader.GetOrdinal("REPORT_DETAIL_CODE")),
                                 OUTPUT_FILE_NAME = reader.GetString(reader.GetOrdinal("OUTPUT_FILE_NAME")),
-                                IS_ACTIVE = reader.GetInt16(reader.GetOrdinal("IS_ACTIVE")),
+                                IS_ACTIVE = reader.GetBoolean(reader.GetOrdinal("IS_ACTIVE")),
                                 CREATE_TIME = reader.GetInt64(reader.GetOrdinal("CREATE_TIME")),
                                 CREATOR = reader.GetString(reader.GetOrdinal("CREATOR")),
                                 MODIFIER = reader.IsDBNull(reader.GetOrdinal("MODIFIER")) ? null : reader.GetString(reader.GetOrdinal("MODIFIER")),

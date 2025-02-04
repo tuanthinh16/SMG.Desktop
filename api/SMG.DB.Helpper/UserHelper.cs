@@ -40,7 +40,7 @@ namespace SMG.DB.Helpper
                                 CREATOR = reader.GetString(reader.GetOrdinal("CREATOR")),
                                 MODIFY_TIME = reader.IsDBNull(reader.GetOrdinal("MODIFY_TIME")) ? 0 : reader.GetInt64(reader.GetOrdinal("MODIFY_TIME")),
                                 MODIFIER = reader.IsDBNull(reader.GetOrdinal("MODIFIER")) ? null : reader.GetString(reader.GetOrdinal("MODIFIER")),
-                                IS_ACTIVE = reader.GetInt16(reader.GetOrdinal("IS_ACTIVE"))
+                                IS_ACTIVE = reader.GetBoolean(reader.GetOrdinal("IS_ACTIVE"))
                             });
                         }
                     }
