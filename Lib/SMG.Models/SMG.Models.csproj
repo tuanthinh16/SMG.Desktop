@@ -42,6 +42,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Bill.cs" />
+    <Compile Include="Clothes.cs" />
+    <Compile Include="ClothesType.cs" />
+    <Compile Include="ExpMestClothes.cs" />
+    <Compile Include="ImpMestClothes.cs" />
+    <Compile Include="ImpMestType.cs" />
     <Compile Include="ModelBase.cs" />
     <Compile Include="Plugins.cs" />
     <Compile Include="PluginType.cs" />
@@ -49,6 +55,8 @@
     <Compile Include="Report.cs" />
     <Compile Include="ReportDetail.cs" />
     <Compile Include="ReportType.cs" />
+    <Compile Include="Transaction.cs" />
+    <Compile Include="TransactionType.cs" />
     <Compile Include="User.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
