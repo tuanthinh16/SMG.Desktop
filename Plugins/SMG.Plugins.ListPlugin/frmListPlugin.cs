@@ -38,7 +38,7 @@ namespace SMG.Plugins.ListPlugin
                 }
                 pluginHelpper = new PluginHelper();
                 ActionType = SMG.GlobalVariables.ActionType.ACCTION__ADD;
-                InitDataToGrid();
+                InitDataToGridAsync();
                 InitDataCboType();
                 SetDefaultValue();
                 SetDefaultControlState();
@@ -105,17 +105,17 @@ namespace SMG.Plugins.ListPlugin
             }
         }
 
-        private void InitDataToGrid()
+        private void InitDataToGridAsync()
         {
             try
             {
                 List<SMG.Models.Plugins> lstPlugins = new List<SMG.Models.Plugins>();
 
                 PluginHelper pluginHelpper = new PluginHelper();
-                lstPlugins = pluginHelpper.LoadPluginsFromDatabaseAsync(0, 100,null).Result;
-                if(lstPlugins != null && lstPlugins.Count > 0)
+                var rs = pluginHelpper.FetchPluginsAsync();
+                if (rs != null )
                 {
-                    gridControlPlugin.DataSource = lstPlugins;
+                    gridControlPlugin.DataSource = rs;
                 }
 
             }
@@ -142,13 +142,17 @@ namespace SMG.Plugins.ListPlugin
                         }
                         if (e.Column.FieldName == "MODIFY_TIME_STR")
                         {
-                            DateTime create = SMG.DateTimeHelpper.Convert.TimeNumberToDateTime(data.MODIFY_TIME);
-                            e.Value = create != DateTime.MinValue ? create.ToString("dd/MM/yyyy HH:mm:ss") : null;
+                            if (data.MODIFY_TIME.HasValue)
+                            {
+                                DateTime? create = SMG.DateTimeHelpper.Convert.TimeNumberToDateTime(data.MODIFY_TIME ?? 0);
+                                e.Value = create != null ? create?.ToString("dd/MM/yyyy HH:mm:ss") : null;
+                            }
+                            
                         }
                         if(e.Column.FieldName == "CREATE_TIME_STR")
                         {
-                            DateTime create = SMG.DateTimeHelpper.Convert.TimeNumberToDateTime(data.CREATE_TIME);
-                            e.Value = create != DateTime.MinValue ? create.ToString("dd/MM/yyyy HH:mm:ss") : null ;
+                            DateTime? create = SMG.DateTimeHelpper.Convert.TimeNumberToDateTime(data.CREATE_TIME);
+                            e.Value = create != null? create?.ToString("dd/MM/yyyy HH:mm:ss") : null ;
                         }
                     }
                 }
@@ -169,7 +173,7 @@ namespace SMG.Plugins.ListPlugin
                 {
                     if (e.Column.FieldName == "LOCK")
                     {
-                        if (data.IS_ACTIVE == 0)
+                        if (data.IS_ACTIVE)
                         {
                             e.RepositoryItem = repoLock;
                         }
@@ -180,7 +184,7 @@ namespace SMG.Plugins.ListPlugin
                     }
                     if(e.Column.FieldName == "DELETE")
                     {
-                        if (data.IS_ACTIVE == 1)
+                        if (data.IS_ACTIVE)
                         {
                             e.RepositoryItem = repoDeleteE;
                         }
@@ -245,7 +249,7 @@ namespace SMG.Plugins.ListPlugin
                 {
                     if (e.Column.FieldName == "STATUS")
                     {
-                        if (data.IS_ACTIVE == 1)
+                        if (data.IS_ACTIVE)
                         {
                             e.DisplayText = "Active";
                             e.Appearance.ForeColor = Color.Green;
@@ -310,7 +314,7 @@ namespace SMG.Plugins.ListPlugin
                     plugins.PLUGIN_TYPE_ID = type;
                 }
 
-                plugins.IS_ACTIVE = 1;
+                plugins.IS_ACTIVE = true;
                 if (TokenManager.TokenManager.IsLoggedIn())
                 {
                     
@@ -335,18 +339,18 @@ namespace SMG.Plugins.ListPlugin
                 
                 string error = string.Empty;
 
-                var result = ActionType == GlobalVariables.ActionType.ACCTION__ADD ?  pluginHelpper.AddPluginAsync(plugins): pluginHelpper.UpdatePluginAsync(plugins);
-                if (result != null && result.Result.Item1)
+                var result = ActionType == GlobalVariables.ActionType.ACCTION__ADD ?  pluginHelpper.CreatePlugin(plugins): pluginHelpper.UpdatePlugin(plugins);
+                if (result)
                 {
                    
                     MessageBox.Show("Xử lý thành công!");
                     SaveImage();
-                    InitDataToGrid();
+                    InitDataToGridAsync();
 
                 }
                 else
                 {
-                    MessageBox.Show(result.Result.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("Xử lý thất bại", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
             catch (Exception ex)
@@ -409,24 +413,24 @@ namespace SMG.Plugins.ListPlugin
         {
             try
             {
-                var data = (SMG.Models.Plugins)gridViewPlugin.GetFocusedRow();
-                if(data != null)
-                {
-                    data.IS_ACTIVE = 1;
-                    string error = string.Empty;
-                    var result = pluginHelpper.UpdatePluginAsync(data);
-                    if (result != null && result.Result.Item1)
-                    {
-                        MessageBox.Show("Xử lý thành công!");
-                        SaveImage();
-                        InitDataToGrid();
+                //var data = (SMG.Models.Plugins)gridViewPlugin.GetFocusedRow();
+                //if(data != null)
+                //{
+                //    data.IS_ACTIVE = true;
+                //    string error = string.Empty;
+                //    var result = pluginHelpper.UpdatePluginAsync(data);
+                //    if (result != null && result.Result.Item1)
+                //    {
+                //        MessageBox.Show("Xử lý thành công!");
+                //        SaveImage();
+                //        InitDataToGridAsync();
 
-                    }
-                    else
-                    {
-                        MessageBox.Show(error, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-                }
+                //    }
+                //    else
+                //    {
+                //        MessageBox.Show(error, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                //    }
+                //}
             }
             catch (Exception ex)
             {
@@ -438,24 +442,24 @@ namespace SMG.Plugins.ListPlugin
         {
             try
             {
-                var data = (SMG.Models.Plugins)gridViewPlugin.GetFocusedRow();
-                if (data != null)
-                {
-                    data.IS_ACTIVE = 0;
-                    string error = string.Empty;
-                    var result = pluginHelpper.UpdatePluginAsync(data);
-                    if (result != null && result.Result.Item1)
-                    {
-                        MessageBox.Show("Xử lý thành công!");
-                        SaveImage();
-                        InitDataToGrid();
+                //var data = (SMG.Models.Plugins)gridViewPlugin.GetFocusedRow();
+                //if (data != null)
+                //{
+                //    data.IS_ACTIVE = false;
+                //    string error = string.Empty;
+                //    var result = pluginHelpper.UpdatePluginAsync(data);
+                //    if (result != null && result.Result.Item1)
+                //    {
+                //        MessageBox.Show("Xử lý thành công!");
+                //        SaveImage();
+                //        InitDataToGridAsync();
 
-                    }
-                    else
-                    {
-                        MessageBox.Show(result.Result.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-                }
+                //    }
+                //    else
+                //    {
+                //        MessageBox.Show(result.Result.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                //    }
+                //}
             }
             catch (Exception ex)
             {
@@ -472,11 +476,11 @@ namespace SMG.Plugins.ListPlugin
                 {
                     
                     string error = string.Empty;
-                    if (MessageBox.Show(this,"Bạn có chắc muốn xóa bỏ dữ liệu ?","Thông báo",MessageBoxButtons.YesNo)== DialogResult.Yes &&  pluginHelpper.DeletePluginAsync(data.ID).Result.Item1)
+                    if (MessageBox.Show(this,"Bạn có chắc muốn xóa bỏ dữ liệu ?","Thông báo",MessageBoxButtons.YesNo)== DialogResult.Yes &&  pluginHelpper.DeletePluginAsync(data.ID))
                     {
                         MessageBox.Show("Xử lý thành công!");
                         SaveImage();
-                        InitDataToGrid();
+                        InitDataToGridAsync();
 
                     }
                     else

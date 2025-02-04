@@ -3,6 +3,7 @@ using SMG.DB.Helpper;
 using SMG.GlobalVariables;
 using SMG.Logging;
 using SMG.Models;
+using SMG.Notify.Toast;
 using SMG.TokenManager;
 using System;
 using System.Collections.Generic;
@@ -60,7 +61,7 @@ namespace SMG.Plugins.ReportType
             {
                 SMG.DB.Helpper.ReportTypeHelper reportTypeHelper = new SMG.DB.Helpper.ReportTypeHelper();
                 string query = string.Empty;
-                var rs = reportTypeHelper.LoadReportTypeFromDatabaseAsync(null,null,query);
+                var rs = reportTypeHelper.GetReportTypesAsync();
                 if(rs != null)
                 {
                     this.listReportType = rs.Result;
@@ -99,11 +100,11 @@ namespace SMG.Plugins.ReportType
                     }
                     if (e.Column.FieldName == "CREATE_TIME_STR")
                     {
-                        e.Value = SMG.DateTimeHelpper.Convert.TimeNumberToDateTime(data.CREATE_TIME).ToString("dd/MM/yyyy HH:mm:ss");
+                        e.Value = SMG.DateTimeHelpper.Convert.TimeNumberToDateTime(data.CREATE_TIME)?.ToString("dd/MM/yyyy HH:mm:ss");
                     }
                     if (e.Column.FieldName == "MODIFY_TIME_STR")
                     {
-                        e.Value = SMG.DateTimeHelpper.Convert.TimeNumberToDateTime(data.MODIFY_TIME).ToString("dd/MM/yyyy HH:mm:ss");
+                        e.Value = SMG.DateTimeHelpper.Convert.TimeNumberToDateTime(data.MODIFY_TIME??0)?.ToString("dd/MM/yyyy HH:mm:ss");
                     }
                 }
             }
@@ -188,7 +189,7 @@ namespace SMG.Plugins.ReportType
                 if (result != null && result.Result.Item1)
                 {
 
-                    MessageBox.Show("Xử lý thành công!");
+                    ToastNotifier.ShowSuccess("Xử lý thành công!");
                     SetDefaultControl();
                     InitDataToGridControl();
 
@@ -249,7 +250,7 @@ namespace SMG.Plugins.ReportType
                         var result = reportTypeHelper.DeleteReportTypeAsync(data.ID);
                         if (result != null && result.Result.Item1)
                         {
-                            MessageBox.Show("Xử lý thành công!");
+                            ToastNotifier.ShowSuccess("Xử lý thành công!");
                             SetDefaultControl();
                             InitDataToGridControl();
                         }
@@ -265,5 +266,6 @@ namespace SMG.Plugins.ReportType
                 LogSystem.Error(ex);
             }
         }
+
     }
 }

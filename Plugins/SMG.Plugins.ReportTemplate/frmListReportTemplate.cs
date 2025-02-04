@@ -46,7 +46,7 @@ namespace SMG.Plugins.ReportTemplate
                 SMG.DB.Helpper.ReportTypeHelper reportTypeHelper = new DB.Helpper.ReportTypeHelper();
                 string query = string.Empty;
                 query += " AND IS_ACTIVE = 1";
-                var rs = reportTypeHelper.LoadReportTypeFromDatabaseAsync(null, null, query);
+                var rs = reportTypeHelper.GetReportTypesAsync();
                 if (rs != null)
                 {
                     this.listReportType = rs.Result;
@@ -156,11 +156,11 @@ namespace SMG.Plugins.ReportTemplate
                     }
                     if (e.Column.FieldName == "CREATE_TIME_STR")
                     {
-                        e.Value = SMG.DateTimeHelpper.Convert.TimeNumberToDateTime(data.CREATE_TIME).ToString("dd/MM/yyyy HH:mm:ss");
+                        e.Value = SMG.DateTimeHelpper.Convert.TimeNumberToDateTime(data.CREATE_TIME)?.ToString("dd/MM/yyyy HH:mm:ss");
                     }
                     if (e.Column.FieldName == "MODIFY_TIME_STR")
                     {
-                        e.Value = SMG.DateTimeHelpper.Convert.TimeNumberToDateTime(data.MODIFY_TIME).ToString("dd/MM/yyyy HH:mm:ss");
+                        e.Value = SMG.DateTimeHelpper.Convert.TimeNumberToDateTime(data.MODIFY_TIME??0)?.ToString("dd/MM/yyyy HH:mm:ss");
                     }
                 }
             }
