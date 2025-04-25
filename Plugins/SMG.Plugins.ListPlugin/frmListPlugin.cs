@@ -115,7 +115,7 @@ namespace SMG.Plugins.ListPlugin
                 var rs = pluginHelpper.FetchPluginsAsync();
                 if (rs != null )
                 {
-                    gridControlPlugin.DataSource = rs;
+                    gridControlPlugin.DataSource = rs.Result;
                 }
 
             }
@@ -173,7 +173,7 @@ namespace SMG.Plugins.ListPlugin
                 {
                     if (e.Column.FieldName == "LOCK")
                     {
-                        if (data.IS_ACTIVE)
+                        if (data.IS_ACTIVE==1)
                         {
                             e.RepositoryItem = repoLock;
                         }
@@ -184,7 +184,7 @@ namespace SMG.Plugins.ListPlugin
                     }
                     if(e.Column.FieldName == "DELETE")
                     {
-                        if (data.IS_ACTIVE)
+                        if (data.IS_ACTIVE==1)
                         {
                             e.RepositoryItem = repoDeleteE;
                         }
@@ -249,7 +249,7 @@ namespace SMG.Plugins.ListPlugin
                 {
                     if (e.Column.FieldName == "STATUS")
                     {
-                        if (data.IS_ACTIVE)
+                        if (data.IS_ACTIVE == 1)
                         {
                             e.DisplayText = "Active";
                             e.Appearance.ForeColor = Color.Green;
@@ -290,11 +290,14 @@ namespace SMG.Plugins.ListPlugin
             try
             {
                 string fullPath = Path.Combine(Application.StartupPath, "Img", "Icon", "Plugin", this.FILE_NAME);
+                if (File.Exists(fullPath))
+                {
+                    return;
+                }
                 File.Copy(this.FILE_PATH, fullPath);
             }
             catch (Exception ex)
             {
-
                 LogSystem.Error(ex);
             }
         }
@@ -314,7 +317,7 @@ namespace SMG.Plugins.ListPlugin
                     plugins.PLUGIN_TYPE_ID = type;
                 }
 
-                plugins.IS_ACTIVE = true;
+                plugins.IS_ACTIVE = 1;
                 if (TokenManager.TokenManager.IsLoggedIn())
                 {
                     
@@ -338,9 +341,13 @@ namespace SMG.Plugins.ListPlugin
                 }
                 
                 string error = string.Empty;
-
-                var result = ActionType == GlobalVariables.ActionType.ACCTION__ADD ?  pluginHelpper.CreatePlugin(plugins): pluginHelpper.UpdatePlugin(plugins);
-                if (result)
+                if (string.IsNullOrEmpty(FILE_PATH))
+                {
+                    MessageBox.Show(this, "Image Plugins is required");
+                    return;
+                }
+                var result = ActionType == GlobalVariables.ActionType.ACCTION__ADD ?  pluginHelpper.CreatePluginAsync(plugins): pluginHelpper.UpdatePluginAsync(plugins);
+                if (result.Result.Item1)
                 {
                    
                     MessageBox.Show("Xử lý thành công!");
@@ -476,7 +483,7 @@ namespace SMG.Plugins.ListPlugin
                 {
                     
                     string error = string.Empty;
-                    if (MessageBox.Show(this,"Bạn có chắc muốn xóa bỏ dữ liệu ?","Thông báo",MessageBoxButtons.YesNo)== DialogResult.Yes &&  pluginHelpper.DeletePluginAsync(data.ID))
+                    if (MessageBox.Show(this,"Bạn có chắc muốn xóa bỏ dữ liệu ?","Thông báo",MessageBoxButtons.YesNo)== DialogResult.Yes &&  pluginHelpper.DeletePluginAsync(data.ID).Result.Item1)
                     {
                         MessageBox.Show("Xử lý thành công!");
                         SaveImage();

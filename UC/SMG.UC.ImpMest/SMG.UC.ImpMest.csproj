@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{26C4A3C0-04A7-4398-8F5C-3DEB63ED4BD3}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>SMG.UC.ImpMest</RootNamespace>
+    <AssemblyName>SMG.UC.ImpMest</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="DevExpress.Data.v15.2, Version=15.2.9.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.Printing.v15.2.Core, Version=15.2.9.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.Sparkline.v15.2.Core, Version=15.2.9.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.Utils.v15.2, Version=15.2.9.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.XtraEditors.v15.2, Version=15.2.9.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.XtraGrid.v15.2, Version=15.2.9.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.XtraLayout.v15.2, Version=15.2.9.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="DevExpress.XtraPrinting.v15.2, Version=15.2.9.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" />
+    <Reference Include="SMG.Models">
+      <HintPath>..\..\Lib\SMG.Models\bin\Debug\SMG.Models.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Transactions" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Item\UC_ImpInfo.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Item\UC_ImpInfo.Designer.cs">
+      <DependentUpon>UC_ImpInfo.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="UC_ImpMest.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UC_ImpMest.Designer.cs">
+      <DependentUpon>UC_ImpMest.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Validation\Validation.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Item\UC_ImpInfo.resx">
+      <DependentUpon>UC_ImpInfo.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\licenses.licx" />
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UC_ImpMest.resx">
+      <DependentUpon>UC_ImpMest.cs</DependentUpon>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\api\SMG.DB.Helpper\SMG.DB.Helpper.csproj">
+      <Project>{de6801f0-c974-4f59-b58d-fea66e9286b9}</Project>
+      <Name>SMG.DB.Helpper</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Lib\SMG.DateTimeHelpper\SMG.DateTimeHelpper.csproj">
+      <Project>{20df19b4-ac09-4737-b3bb-e4044dab4af8}</Project>
+      <Name>SMG.DateTimeHelpper</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Lib\SMG.Logging\SMG.Logging.csproj">
+      <Project>{D5DD42ED-BF26-401C-82BA-EBE17598DFB5}</Project>
+      <Name>SMG.Logging</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>set DLL_NAME=$(ProjectName).dll
+set SOLUTION_DIR=$(SolutionDir)
+
+set TARGET_DIR=%25SOLUTION_DIR%25bin\$(Configuration)\
+
+REM Copy the main project DLL to Plugins if it matches the project name
+if "$(TargetFileName)" == "%25DLL_NAME%25" (
+    if not exist "%25TARGET_DIR%25\Plugins" mkdir "%25TARGET_DIR%25\Plugins"
+    xcopy /Y /I "$(TargetDir)$(TargetFileName)" "%25TARGET_DIR%25\Plugins\"
+)
+
+REM Copy all referenced DLLs to the Libs directory
+for %25%25R in ($(TargetDir)*.dll) do (
+    if not "%25%25~nxR"=="%25DLL_NAME%25" (
+        if not exist "%25TARGET_DIR%25\Libs" mkdir "%25TARGET_DIR%25\Libs"
+        xcopy /Y /I "%25%25R" "%25TARGET_DIR%25\Libs\"
+    )
+)
+</PostBuildEvent>
+  </PropertyGroup>
+</Project>

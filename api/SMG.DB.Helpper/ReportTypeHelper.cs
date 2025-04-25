@@ -1,4 +1,4 @@
-﻿using Oracle.ManagedDataAccess.Client;
+﻿using MySql.Data.MySqlClient;
 using SMG.DB.Helper;
 using SMG.Logging;
 using SMG.Models;
@@ -6,20 +6,15 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using static SMG.DB.Helpper.PluginHelper;
 
 namespace SMG.DB.Helpper
 {
     public class ReportTypeHelper
     {
-        graphqlHelper client = new graphqlHelper();
         public ReportTypeHelper() : base() { }
 
         // Semaphore để giới hạn số lượng thread kết nối đồng thời
         private static SemaphoreSlim semaphore = new SemaphoreSlim(5); // Ví dụ: tối đa 5 luồng
-
-        // Phương thức lấy plugin từ cơ sở dữ liệu
-        
 
         // Thêm Reportype mới
         public async Task<(bool, string)> AddReportTypeAsync(ReportType reportType)
@@ -27,40 +22,25 @@ namespace SMG.DB.Helpper
             string error = string.Empty;
             try
             {
-                string mutation = @"
-                mutation CreateReportType($reportTypeCode: String, $reportTypeGroupId: Int, $reportTypeName: String) {
-                    createReportType(
-                        reportTypeCode: $reportTypeCode, 
-                        reportTypeGroupId: $reportTypeGroupId, 
-                        reportTypeName: $reportTypeName
-                    ) {
-                        success
-                    }
-                }";
-
-                // Định nghĩa các tham số để truyền vào mutation
-                var variables = new
+                var dbHelper = new DBHelper();
+                using (var connection = await dbHelper.OpenConnectionAsync())
                 {
-                    reportTypeCode = reportType.REPORT_TYPE_CODE,
-                    reportTypeGroupId = reportType.REPORT_TYPE_GROUP_ID,
-                    reportTypeName = reportType.REPORT_TYPE_NAME
-                };
+                    var command = new MySqlCommand(
+                        "INSERT INTO SMN_REPORT_TYPE (REPORT_TYPE_CODE, REPORT_TYPE_NAME, REPORT_TYPE_GROUP_ID, CREATE_TIME, CREATOR, IS_ACTIVE) " +
+                        "VALUES (@REPORT_TYPE_CODE, @REPORT_TYPE_NAME, @REPORT_TYPE_GROUP_ID, @CREATE_TIME, @CREATOR, @IS_ACTIVE)", connection);
 
-                // Gửi mutation và lấy kết quả
-                var result = client.ExecuteQuery<CreateReportTypeResponse>(mutation, variables);
+                    command.Parameters.AddWithValue("@REPORT_TYPE_CODE", reportType.REPORT_TYPE_CODE);
+                    command.Parameters.AddWithValue("@REPORT_TYPE_NAME", reportType.REPORT_TYPE_NAME);
+                    command.Parameters.AddWithValue("@REPORT_TYPE_GROUP_ID", reportType.REPORT_TYPE_GROUP_ID);
+                    command.Parameters.AddWithValue("@CREATE_TIME", SMG.DateTimeHelpper.Convert.DateTimeToTimeNumber(DateTime.Now));
+                    command.Parameters.AddWithValue("@CREATOR", reportType.CREATOR);
+                    command.Parameters.AddWithValue("@IS_ACTIVE", reportType.IS_ACTIVE);
 
-                // Kiểm tra kết quả và trả về
-                if (result != null && result.CreateReportType != null && result.CreateReportType.Success)
-                {
-                    return (true, error);
-                }
-                else
-                {
-                    error = "Failed to create report type.";
-                    return (false, error);
+                    int result = command.ExecuteNonQuery();
+                    return (result > 0, error);
                 }
             }
-            catch (OracleException ex)
+            catch (MySqlException ex)
             {
                 LogSystem.Error("Error adding report type: " + ex.Message);
                 error = ex.Message;
@@ -68,140 +48,131 @@ namespace SMG.DB.Helpper
             }
         }
 
-
         // Cập nhật Reportype
         public async Task<(bool, string)> UpdateReportTypeAsync(ReportType reportType)
         {
             string error = string.Empty;
             try
             {
-                string mutation = @"
-                mutation UpdateReportType($id: Int, $modifier: String, $reportTypeCode: String, $reportTypeGroupId: Int, $reportTypeName: String) {
-                    updateReportType(
-                        id: $id,
-                        modifier: $modifier,
-                        reportTypeCode: $reportTypeCode,
-                        reportTypeGroupId: $reportTypeGroupId,
-                        reportTypeName: $reportTypeName
-                    ) {
-                        success
-                    }
-                }";
-
-                var variables = new
+                var dbHelper = new DBHelper();
+                using (var connection = await dbHelper.OpenConnectionAsync())
                 {
-                    id = reportType.ID,
-                    modifier = reportType.MODIFIER,
-                    reportTypeCode = reportType.REPORT_TYPE_CODE,
-                    reportTypeGroupId = reportType.REPORT_TYPE_GROUP_ID,
-                    reportTypeName = reportType.REPORT_TYPE_NAME
-                };
+                    var query = "UPDATE SMN_REPORT_TYPE SET ";
+                    List<MySqlParameter> parameters = new List<MySqlParameter>();
 
-                var result = client.ExecuteQuery<UpdateReportTypeResponse>(mutation, variables);
+                    if (!string.IsNullOrEmpty(reportType.REPORT_TYPE_CODE))
+                    {
+                        AddSubQuery(ref query, "REPORT_TYPE_CODE", reportType.REPORT_TYPE_CODE, ref parameters);
+                    }
+                    if (!string.IsNullOrEmpty(reportType.REPORT_TYPE_NAME))
+                    {
+                        AddSubQuery(ref query, "REPORT_TYPE_NAME", reportType.REPORT_TYPE_NAME, ref parameters);
+                    }
+                    if (reportType.REPORT_TYPE_GROUP_ID.HasValue)
+                    {
+                        AddSubQuery(ref query, "REPORT_TYPE_GROUP_ID", reportType.REPORT_TYPE_GROUP_ID, ref parameters);
+                    }
+                    if (reportType.MODIFIER != null)
+                    {
+                        AddSubQuery(ref query, "MODIFIER", reportType.MODIFIER, ref parameters);
+                    }
 
-                return (result != null && result.UpdateReportType != null && result.UpdateReportType.Success, error);
+                    query += "MODIFY_TIME = @MODIFY_TIME, IS_ACTIVE = @IS_ACTIVE WHERE ID = @ID";
+
+                    parameters.Add(new MySqlParameter("@MODIFY_TIME", SMG.DateTimeHelpper.Convert.DateTimeToTimeNumber(DateTime.Now)));
+                    parameters.Add(new MySqlParameter("@IS_ACTIVE", reportType.IS_ACTIVE));
+                    parameters.Add(new MySqlParameter("@ID", reportType.ID));
+
+                    var command = new MySqlCommand(query, connection);
+                    command.Parameters.AddRange(parameters.ToArray());
+
+                    int result = command.ExecuteNonQuery();
+                    return (result > 0, error);
+                }
             }
-            catch (Exception ex)
+            catch (MySqlException ex)
             {
                 LogSystem.Error("Error updating report type: " + ex.Message);
                 error = ex.Message;
                 return (false, error);
             }
         }
-        // xoa Reportype
+
+        private void AddSubQuery(ref string query, string fieldName, object fieldValue, ref List<MySqlParameter> parameters)
+        {
+            if (fieldValue != null)
+            {
+                query += $"{fieldName} = @{fieldName}, ";
+                parameters.Add(new MySqlParameter($"@{fieldName}", fieldValue));
+            }
+        }
+
+        // Xóa Reportype
         public async Task<(bool, string)> DeleteReportTypeAsync(long id)
         {
             string error = string.Empty;
             try
             {
-                string mutation = @"
-                mutation DeleteReportType($id: Int) {
-                    deleteReportType(id: $id) {
-                        success
-                    }
-                }";
+                var dbHelper = new DBHelper();
+                using (var connection = await dbHelper.OpenConnectionAsync())
+                {
+                    var command = new MySqlCommand("DELETE FROM SMN_REPORT_TYPE WHERE ID = @ID", connection);
+                    command.Parameters.AddWithValue("@ID", id);
 
-                var variables = new { id };
-
-                var result = client.ExecuteQuery<DeleteReportTypeResponse>(mutation, variables);
-
-                return (result != null && result.DeleteReportType != null && result.DeleteReportType.Success, error);
+                    int result = command.ExecuteNonQuery();
+                    return (result > 0, error);
+                }
             }
-            catch (Exception ex)
+            catch (MySqlException ex)
             {
                 LogSystem.Error("Error deleting report type: " + ex.Message);
                 error = ex.Message;
                 return (false, error);
             }
         }
-        //get reportType
+
+        // Lấy danh sách ReportType
         public async Task<List<ReportType>> GetReportTypesAsync()
         {
+            var reportTypes = new List<ReportType>();
             try
             {
-                string query = @"
-                            query ReportTypes {
-                                reportTypes {
-                                    ID
-                                    REPORT_TYPE_CODE
-                                    REPORT_TYPE_NAME
-                                    REPORT_TYPE_GROUP_ID
-                                    CREATE_TIME
-                                    CREATOR
-                                    MODIFIER
-                                    MODIFY_TIME
-                                    IS_ACTIVE
-                                }
-                            }";
+                var dbHelper = new DBHelper();
+                await semaphore.WaitAsync();
 
-                var result = client.ExecuteQuery<ReportTypesResponse>(query);
+                string query = "SELECT * FROM SMN_REPORT_TYPE";
 
-                return result?.ReportTypes ?? new List<ReportType>();
+                using (var connection = await dbHelper.OpenConnectionAsync())
+                using (var command = new MySqlCommand(query, connection))
+                using (var reader = command.ExecuteReader())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        reportTypes.Add(new ReportType
+                        {
+                            ID = reader.GetInt64(reader.GetOrdinal("ID")),
+                            REPORT_TYPE_CODE = reader.GetString(reader.GetOrdinal("REPORT_TYPE_CODE")),
+                            REPORT_TYPE_NAME = reader.GetString(reader.GetOrdinal("REPORT_TYPE_NAME")),
+                            REPORT_TYPE_GROUP_ID = reader.IsDBNull(reader.GetOrdinal("REPORT_TYPE_GROUP_ID")) ? (long?)null : reader.GetInt64(reader.GetOrdinal("REPORT_TYPE_GROUP_ID")),
+                            CREATE_TIME = reader.GetInt64(reader.GetOrdinal("CREATE_TIME")),
+                            CREATOR = reader.GetString(reader.GetOrdinal("CREATOR")),
+                            MODIFIER = reader.IsDBNull(reader.GetOrdinal("MODIFIER")) ? null : reader.GetString(reader.GetOrdinal("MODIFIER")),
+                            MODIFY_TIME = reader.IsDBNull(reader.GetOrdinal("MODIFY_TIME")) ? (long?)null : reader.GetInt64(reader.GetOrdinal("MODIFY_TIME")),
+                            IS_ACTIVE = reader.GetInt16(reader.GetOrdinal("IS_ACTIVE"))
+                        });
+                    }
+                }
             }
-            catch (Exception ex)
+            catch (MySqlException ex)
             {
                 LogSystem.Error("Error fetching report types: " + ex.Message);
-                return new List<ReportType>();
             }
+            finally
+            {
+                semaphore.Release();
+            }
+
+            return reportTypes;
         }
-
-
-        //response
-        public class CreateReportTypeResponse
-        {
-            public CreateReportTypeResult CreateReportType { get; set; }
-        }
-
-        public class CreateReportTypeResult
-        {
-            public bool Success { get; set; }
-        }
-
-        public class UpdateReportTypeResponse
-        {
-            public UpdateReportTypeResult UpdateReportType { get; set; }
-        }
-
-        public class UpdateReportTypeResult
-        {
-            public bool Success { get; set; }
-        }
-
-        public class DeleteReportTypeResponse
-        {
-            public DeleteReportTypeResult DeleteReportType { get; set; }
-        }
-
-        public class DeleteReportTypeResult
-        {
-            public bool Success { get; set; }
-        }
-
-        public class ReportTypesResponse
-        {
-            public List<ReportType> ReportTypes { get; set; }
-        }
-
-
     }
 }

@@ -49,7 +49,7 @@ namespace SMG.Desktop
             try
             {
                 List<SMG.Models.Plugins> plugins = new List<SMG.Models.Plugins>();
-                var rs = LoadPluginDataAsync();
+                var rs = LoadPluginDataAsync().Result;
                 if(rs != null)
                 {
                     plugins.AddRange(rs);
@@ -113,26 +113,26 @@ namespace SMG.Desktop
             }
         }
 
-        private List<Models.Plugins> LoadPluginDataAsync()
+        private async Task<List<Models.Plugins>> LoadPluginDataAsync()
         {
             List<SMG.Models.Plugins> result = new List<Models.Plugins>();
             try
             {
                 List<SMG.Models.Plugins> lstPlugins = new List<SMG.Models.Plugins>();
                 PluginHelper pluginHelpper = new PluginHelper();
-                var rs = pluginHelpper.FetchPluginsAsync();
+                var rs = await pluginHelpper.FetchPluginsAsync();
                 if (rs != null && rs.Count > 0)
                 {
                     result.AddRange(rs);
                 }
-                result.Add(new Models.Plugins() { ID = 3, PLUGIN_NAME = "Plugins", IS_ACTIVE=true,PLUGIN_LINK = "SMG.Plugins.ListPlugin", PLUGIN_TYPE_ID = 2, ICON = "module.png" });
+                result.Add(new Models.Plugins() { ID = 3, PLUGIN_NAME = "Plugins", IS_ACTIVE = 1, PLUGIN_LINK = "SMG.Plugins.ListPlugin", PLUGIN_TYPE_ID = 2, ICON = "module.png" });
             }
             catch (Exception ex)
             {
                 result.Clear();
                 LogSystem.Error(ex);
             }
-            return result.Where(s => s.IS_ACTIVE).ToList();
+            return result.Where(s => s.IS_ACTIVE == 1).ToList();
         }
 
         private void xtraTabControl1_CloseButtonClick(object sender, EventArgs e)

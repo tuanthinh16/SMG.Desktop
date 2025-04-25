@@ -1,4 +1,4 @@
-﻿using Oracle.ManagedDataAccess.Client;
+﻿using MySql.Data.MySqlClient;
 using SMG.DB.Helper;
 using SMG.Logging;
 using SMG.Models;
@@ -28,14 +28,12 @@ namespace SMG.DB.Helpper
                                     FROM (
                                         SELECT SMN_REPORT.*, ROW_NUMBER() OVER (ORDER BY CREATE_TIME) AS ROW_NUM
                                         FROM SMN_REPORT
-                                    )
+                                    ) AS temp
                                     WHERE 1=1 ";
 
                 if (start.HasValue && limit.HasValue)
                 {
-                    query += " AND ROW_NUM BETWEEN :start AND :limit ";
-                    query = query.Replace(":start", start.ToString());
-                    query = query.Replace(":limit", limit.ToString());
+                    query += " AND ROW_NUM BETWEEN @start AND @limit ";
                 }
                 if (!string.IsNullOrEmpty(subQuery))
                 {
@@ -44,9 +42,15 @@ namespace SMG.DB.Helpper
 
                 using (var connection = await dbHelper.OpenConnectionAsync())
                 {
-                    var command = new OracleCommand(query, connection);
+                    var command = new MySqlCommand(query, connection);
 
-                    using (var reader = command.ExecuteReader())
+                    if (start.HasValue && limit.HasValue)
+                    {
+                        command.Parameters.AddWithValue("@start", start.Value);
+                        command.Parameters.AddWithValue("@limit", limit.Value);
+                    }
+
+                    using (var reader = await command.ExecuteReaderAsync())
                     {
                         while (await reader.ReadAsync())
                         {
@@ -56,7 +60,7 @@ namespace SMG.DB.Helpper
                                 REPORT_CODE = reader.GetString(reader.GetOrdinal("REPORT_CODE")),
                                 REPORT_NAME = reader.GetString(reader.GetOrdinal("REPORT_NAME")),
                                 REPORT_TYPE_CODE = reader.GetString(reader.GetOrdinal("REPORT_TYPE_CODE")),
-                                IS_ACTIVE = reader.GetBoolean(reader.GetOrdinal("IS_ACTIVE")),
+                                IS_ACTIVE = reader.GetInt16(reader.GetOrdinal("IS_ACTIVE")),
                                 CREATE_TIME = reader.GetInt64(reader.GetOrdinal("CREATE_TIME")),
                                 CREATOR = reader.GetString(reader.GetOrdinal("CREATOR")),
                                 MODIFIER = reader.IsDBNull(reader.GetOrdinal("MODIFIER")) ? null : reader.GetString(reader.GetOrdinal("MODIFIER")),
@@ -68,7 +72,7 @@ namespace SMG.DB.Helpper
                     }
                 }
             }
-            catch (OracleException ex)
+            catch (MySqlException ex)
             {
                 LogSystem.Error("Error: " + ex.Message);
             }
@@ -88,8 +92,8 @@ namespace SMG.DB.Helpper
                 var dbHelper = new DBHelper();
                 using (var connection = await dbHelper.OpenConnectionAsync())
                 {
-                    var command = new OracleCommand(query, connection);
-                    using (var reader = command.ExecuteReader())
+                    var command = new MySqlCommand(query, connection);
+                    using (var reader = await command.ExecuteReaderAsync())
                     {
                         while (await reader.ReadAsync())
                         {
@@ -99,7 +103,7 @@ namespace SMG.DB.Helpper
                                 REPORT_CODE = reader.GetString(reader.GetOrdinal("REPORT_CODE")),
                                 REPORT_NAME = reader.GetString(reader.GetOrdinal("REPORT_NAME")),
                                 REPORT_TYPE_CODE = reader.GetString(reader.GetOrdinal("REPORT_TYPE_CODE")),
-                                IS_ACTIVE = reader.GetBoolean(reader.GetOrdinal("IS_ACTIVE")),
+                                IS_ACTIVE = reader.GetInt16(reader.GetOrdinal("IS_ACTIVE")),
                                 CREATE_TIME = reader.GetInt64(reader.GetOrdinal("CREATE_TIME")),
                                 CREATOR = reader.GetString(reader.GetOrdinal("CREATOR")),
                                 MODIFIER = reader.IsDBNull(reader.GetOrdinal("MODIFIER")) ? null : reader.GetString(reader.GetOrdinal("MODIFIER")),
@@ -127,24 +131,24 @@ namespace SMG.DB.Helpper
                 var dbHelper = new DBHelper();
                 using (var connection = await dbHelper.OpenConnectionAsync())
                 {
-                    var command = new OracleCommand(
-                        "INSERT INTO SMN_REPORT (REPORT_CODE, REPORT_NAME, IS_ACTIVE, CREATE_TIME, CREATOR,REPORT_TYPE_CODE,REPORT_GROUP_ID,REPORT_FILE_NAME) " +
-                        "VALUES (:REPORT_CODE, :REPORT_NAME, :IS_ACTIVE, :CREATE_TIME, :CREATOR,:REPORT_TYPE_CODE,:REPORT_GROUP_ID,:REPORT_FILE_NAME)", connection);
+                    var command = new MySqlCommand(
+                        "INSERT INTO SMN_REPORT (REPORT_CODE, REPORT_NAME, IS_ACTIVE, CREATE_TIME, CREATOR, REPORT_TYPE_CODE, REPORT_GROUP_ID, REPORT_FILE_NAME) " +
+                        "VALUES (@REPORT_CODE, @REPORT_NAME, @IS_ACTIVE, @CREATE_TIME, @CREATOR, @REPORT_TYPE_CODE, @REPORT_GROUP_ID, @REPORT_FILE_NAME)", connection);
 
-                    command.Parameters.Add(new OracleParameter(":REPORT_CODE", report.REPORT_CODE));
-                    command.Parameters.Add(new OracleParameter(":REPORT_NAME", report.REPORT_NAME));
-                    command.Parameters.Add(new OracleParameter(":IS_ACTIVE", report.IS_ACTIVE));
-                    command.Parameters.Add(new OracleParameter(":CREATE_TIME", SMG.DateTimeHelpper.Convert.DateTimeToTimeNumber(DateTime.Now)));
-                    command.Parameters.Add(new OracleParameter(":CREATOR", report.CREATOR));
-                    command.Parameters.Add(new OracleParameter(":REPORT_TYPE_CODE", report.REPORT_TYPE_CODE));
-                    command.Parameters.Add(new OracleParameter(":REPORT_GROUP_ID", report.REPORT_GROUP_ID));
-                    command.Parameters.Add(new OracleParameter(":REPORT_FILE_NAME", report.REPORT_FILE_NAME));
+                    command.Parameters.AddWithValue("@REPORT_CODE", report.REPORT_CODE);
+                    command.Parameters.AddWithValue("@REPORT_NAME", report.REPORT_NAME);
+                    command.Parameters.AddWithValue("@IS_ACTIVE", report.IS_ACTIVE);
+                    command.Parameters.AddWithValue("@CREATE_TIME", SMG.DateTimeHelpper.Convert.DateTimeToTimeNumber(DateTime.Now));
+                    command.Parameters.AddWithValue("@CREATOR", report.CREATOR);
+                    command.Parameters.AddWithValue("@REPORT_TYPE_CODE", report.REPORT_TYPE_CODE);
+                    command.Parameters.AddWithValue("@REPORT_GROUP_ID", report.REPORT_GROUP_ID);
+                    command.Parameters.AddWithValue("@REPORT_FILE_NAME", report.REPORT_FILE_NAME);
 
-                    int result = command.ExecuteNonQuery();
+                    int result = await command.ExecuteNonQueryAsync();
                     return (result > 0, error);
                 }
             }
-            catch (OracleException ex)
+            catch (MySqlException ex)
             {
                 LogSystem.Error("Error adding report: " + ex.Message);
                 error = ex.Message;
@@ -161,7 +165,7 @@ namespace SMG.DB.Helpper
                 using (var connection = await dbHelper.OpenConnectionAsync())
                 {
                     var query = "UPDATE SMN_REPORT SET ";
-                    List<OracleParameter> parameters = new List<OracleParameter>();
+                    List<MySqlParameter> parameters = new List<MySqlParameter>();
 
                     if (!string.IsNullOrEmpty(report.REPORT_CODE))
                     {
@@ -181,19 +185,19 @@ namespace SMG.DB.Helpper
                         AddSubQuery(ref query, "MODIFIER", report.MODIFIER, ref parameters);
                     }
 
-                    query += "MODIFY_TIME = :MODIFY_TIME WHERE ID = :ID";
+                    query += "MODIFY_TIME = @MODIFY_TIME WHERE ID = @ID";
 
-                    parameters.Add(new OracleParameter(":MODIFY_TIME", SMG.DateTimeHelpper.Convert.DateTimeToTimeNumber(DateTime.Now)));
-                    parameters.Add(new OracleParameter(":ID", report.ID));
+                    parameters.Add(new MySqlParameter("@MODIFY_TIME", SMG.DateTimeHelpper.Convert.DateTimeToTimeNumber(DateTime.Now)));
+                    parameters.Add(new MySqlParameter("@ID", report.ID));
 
-                    var command = new OracleCommand(query, connection);
+                    var command = new MySqlCommand(query, connection);
                     command.Parameters.AddRange(parameters.ToArray());
 
-                    int result = command.ExecuteNonQuery();
+                    int result = await command.ExecuteNonQueryAsync();
                     return (result > 0, error);
                 }
             }
-            catch (OracleException ex)
+            catch (MySqlException ex)
             {
                 LogSystem.Error("Error updating report: " + ex.Message);
                 error = ex.Message;
@@ -201,12 +205,12 @@ namespace SMG.DB.Helpper
             }
         }
 
-        private void AddSubQuery(ref string query, string fieldName, object fieldValue, ref List<OracleParameter> parameters)
+        private void AddSubQuery(ref string query, string fieldName, object fieldValue, ref List<MySqlParameter> parameters)
         {
             if (fieldValue != null)
             {
-                query += $"{fieldName} = :{fieldName}, ";
-                parameters.Add(new OracleParameter($":{fieldName}", fieldValue));
+                query += $"{fieldName} = @{fieldName}, ";
+                parameters.Add(new MySqlParameter($"@{fieldName}", fieldValue));
             }
         }
 
@@ -224,14 +228,14 @@ namespace SMG.DB.Helpper
                 var dbHelper = new DBHelper();
                 using (var connection = await dbHelper.OpenConnectionAsync())
                 {
-                    var command = new OracleCommand("DELETE FROM SMN_REPORT WHERE ID = :ID", connection);
-                    command.Parameters.Add(new OracleParameter(":ID", reportId));
+                    var command = new MySqlCommand("DELETE FROM SMN_REPORT WHERE ID = @ID", connection);
+                    command.Parameters.AddWithValue("@ID", reportId);
 
-                    int result = command.ExecuteNonQuery();
+                    int result = await command.ExecuteNonQueryAsync();
                     return (result > 0, error);
                 }
             }
-            catch (OracleException ex)
+            catch (MySqlException ex)
             {
                 LogSystem.Error("Error deleting report: " + ex.Message);
                 error = ex.Message;

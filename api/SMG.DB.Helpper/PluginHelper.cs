@@ -1,4 +1,4 @@
-﻿using Oracle.ManagedDataAccess.Client;
+﻿using MySql.Data.MySqlClient;
 using SMG.DB.Helper;
 using SMG.Logging;
 using SMG.Models;
@@ -11,177 +11,184 @@ namespace SMG.DB.Helpper
 {
     public class PluginHelper
     {
-        graphqlHelper client = new graphqlHelper();
-        public PluginHelper() : base() {
-            
-        }
+        public PluginHelper() : base() { }
 
         // Semaphore để giới hạn số lượng thread kết nối đồng thời
-        private static SemaphoreSlim semaphore = new SemaphoreSlim(50); // Ví dụ: tối đa 5 luồng
+        private static SemaphoreSlim semaphore = new SemaphoreSlim(50); // Ví dụ: tối đa 50 luồng
 
         // Phương thức lấy plugin từ cơ sở dữ liệu
-        
-        public List<Plugins> FetchPluginsAsync()
+        public async Task<List<Plugins>> FetchPluginsAsync()
         {
-            List<Plugins> lstplugins = new List<Plugins>();
+            var plugins = new List<Plugins>();
             try
             {
-                string query = @"
-                  query Plugins { 
-                      plugins { 
-                          ID 
-                          CREATE_TIME 
-                          CREATOR 
-                          MODIFIER 
-                          MODIFY_TIME 
-                          PLUGIN_NAME 
-                          PLUGIN_LINK 
-                          IS_ACTIVE 
-                          PLUGIN_GROUP_ID 
-                          PLUGIN_TYPE_ID 
-                          ICON 
-                      } 
-                  }";
-                var result = client.ExecuteQuery<PluginResponse>(query);
+                var dbHelper = new DBHelper();
+                await semaphore.WaitAsync();
 
-                // Nếu kết quả không null, thêm vào danh sách
-                if (result != null && result.Plugins != null)
+                string query = "SELECT * FROM SMN_PLUGINS";
+
+                using (var connection = await dbHelper.OpenConnectionAsync())
+                using (var command = new MySqlCommand(query, connection))
                 {
-                    lstplugins.AddRange(result.Plugins);
-                }
-                return lstplugins;
-            }
-            catch (Exception ex)
-            {
-                LogSystem.Error(ex);
-                return null;
-            }
-        }
-        public bool CreatePlugin(Plugins plugin)
-        {
-            try
-            {
-
-                // Câu lệnh mutation để tạo plugin mới
-                string mutation = @"
-                        mutation CreatePlugin($pluginName: String!, $pluginLink: String!, $isActive: Boolean!, $icon: String) {
-                            createPlugin(pluginName: $pluginName, pluginLink: $pluginLink, isActive: $isActive, icon: $icon) {
-                                success
-                                plugin {
-                                    ID
-                                    PLUGIN_NAME
-                                    CREATE_TIME
-                                    MODIFIER
-                                    MODIFY_TIME
-                                    IS_ACTIVE
-                                    PLUGIN_LINK
-                                    ICON
-                                }
-                            }
+                    command.CommandTimeout = 30; // Set command timeout to 30 seconds
+                    using (var reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            plugins.Add(new Plugins
+                            {
+                                ID = reader.GetInt64(reader.GetOrdinal("ID")),
+                                PLUGIN_NAME = reader.GetString(reader.GetOrdinal("PLUGIN_NAME")),
+                                PLUGIN_LINK = reader.GetString(reader.GetOrdinal("PLUGIN_LINK")),
+                                PLUGIN_GROUP_ID = reader.IsDBNull(reader.GetOrdinal("PLUGIN_GROUP_ID")) ? (long?)null : reader.GetInt64(reader.GetOrdinal("PLUGIN_GROUP_ID")),
+                                PLUGIN_TYPE_ID = reader.IsDBNull(reader.GetOrdinal("PLUGIN_TYPE_ID")) ? (long?)null : reader.GetInt64(reader.GetOrdinal("PLUGIN_TYPE_ID")),
+                                ICON = reader.GetString(reader.GetOrdinal("ICON")),
+                                CREATE_TIME = reader.GetInt64(reader.GetOrdinal("CREATE_TIME")),
+                                CREATOR = reader.GetString(reader.GetOrdinal("CREATOR")),
+                                MODIFIER = reader.IsDBNull(reader.GetOrdinal("MODIFIER")) ? null : reader.GetString(reader.GetOrdinal("MODIFIER")),
+                                MODIFY_TIME = reader.IsDBNull(reader.GetOrdinal("MODIFY_TIME")) ? (long?)null : reader.GetInt64(reader.GetOrdinal("MODIFY_TIME")),
+                                IS_ACTIVE = reader.GetInt16(reader.GetOrdinal("IS_ACTIVE"))
+                            });
                         }
-                        ";
-
-                // Định nghĩa các tham số để truyền vào mutation
-                var variables = new
-                {
-                    pluginName = plugin.PLUGIN_NAME,
-                    pluginLink = plugin.PLUGIN_LINK,
-                    isActive = plugin.IS_ACTIVE,
-                    icon = plugin.ICON
-                };
-
-                var result = client.ExecuteQuery<CreatePluginResponse>(mutation, variables);
-
-                // Kiểm tra kết quả và trả về
-                return result != null && result.CreatePlugin != null && result.CreatePlugin.Success;
-            }
-            catch (Exception ex)
-            {
-                LogSystem.Error(ex);
-                return false;
-            }
-        }
-
-        // Phản hồi từ GraphQL khi tạo plugin
-        public class CreatePluginResponse
-        {
-            public CreatePluginData CreatePlugin { get; set; }
-        }
-
-        public class CreatePluginData
-        {
-            public bool Success { get; set; }
-            public Plugins Plugin { get; set; }
-        }
-
-
-        public bool UpdatePlugin(Plugins plugin)
-        {
-            try
-            {
-
-                // Câu lệnh mutation để cập nhật plugin
-                string mutation = @"
-            mutation UpdatePlugin($id: Int!, $pluginName: String!, $pluginLink: String!, $isActive: Boolean!, $icon: String!) {
-                updatePlugin(id: $id, pluginName: $pluginName, pluginLink: $pluginLink, isActive: $isActive, icon: $icon) {
-                    success
-                    plugin {
-                        ID
-                        PLUGIN_NAME
-                        CREATE_TIME
-                        MODIFIER
-                        MODIFY_TIME
-                        IS_ACTIVE
-                        PLUGIN_LINK
-                        ICON
                     }
                 }
-            }";
-
-                // Định nghĩa các tham số để truyền vào mutation
-                var variables = new
-                {
-                    id = plugin.ID,
-                    pluginName = plugin.PLUGIN_NAME,
-                    pluginLink = plugin.PLUGIN_LINK,
-                    isActive = plugin.IS_ACTIVE,
-                    icon = plugin.ICON
-                };
-
-                var result = client.ExecuteQuery<UpdatePluginResponse>(mutation, variables);
-
-                // Kiểm tra kết quả và trả về
-                return result != null && result.UpdatePlugin != null && result.UpdatePlugin.Success;
+                
             }
-            catch (Exception ex)
+            catch (MySqlException ex)
             {
-                LogSystem.Error(ex);
-                return false;
+                LogSystem.Error("Error fetching plugins: " + ex.Message);
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+
+            return plugins;
+        }
+
+        // Thêm Plugin mới
+        public async Task<(bool, string)> CreatePluginAsync(Plugins plugin)
+        {
+            string error = string.Empty;
+            try
+            {
+                var dbHelper = new DBHelper();
+                using (var connection = await dbHelper.OpenConnectionAsync())
+                {
+                    var command = new MySqlCommand(
+                        "INSERT INTO SMN_PLUGINS (PLUGIN_NAME, PLUGIN_LINK, PLUGIN_GROUP_ID, PLUGIN_TYPE_ID, ICON, CREATE_TIME, CREATOR, IS_ACTIVE) " +
+                        "VALUES (@PLUGIN_NAME, @PLUGIN_LINK, @PLUGIN_GROUP_ID, @PLUGIN_TYPE_ID, @ICON, @CREATE_TIME, @CREATOR, @IS_ACTIVE)", connection);
+
+                    command.Parameters.AddWithValue("@PLUGIN_NAME", plugin.PLUGIN_NAME);
+                    command.Parameters.AddWithValue("@PLUGIN_LINK", plugin.PLUGIN_LINK);
+                    command.Parameters.AddWithValue("@PLUGIN_GROUP_ID", plugin.PLUGIN_GROUP_ID);
+                    command.Parameters.AddWithValue("@PLUGIN_TYPE_ID", plugin.PLUGIN_TYPE_ID);
+                    command.Parameters.AddWithValue("@ICON", plugin.ICON);
+                    command.Parameters.AddWithValue("@CREATE_TIME", SMG.DateTimeHelpper.Convert.DateTimeToTimeNumber(DateTime.Now));
+                    command.Parameters.AddWithValue("@CREATOR", plugin.CREATOR);
+                    command.Parameters.AddWithValue("@IS_ACTIVE", 1);
+
+                    int result = command.ExecuteNonQuery();
+                    return (result > 0, error);
+                }
+            }
+            catch (MySqlException ex)
+            {
+                LogSystem.Error("Error adding plugin: " + ex.Message);
+                error = ex.Message;
+                return (false, error);
             }
         }
 
-        public bool DeletePluginAsync(long iD)
+        // Cập nhật Plugin
+        public async Task<(bool, string)> UpdatePluginAsync(Plugins plugin)
         {
-            throw new NotImplementedException();
+            string error = string.Empty;
+            try
+            {
+                var dbHelper = new DBHelper();
+                using (var connection = await dbHelper.OpenConnectionAsync())
+                {
+                    var query = "UPDATE SMN_PLUGINS SET ";
+                    List<MySqlParameter> parameters = new List<MySqlParameter>();
+
+                    if (!string.IsNullOrEmpty(plugin.PLUGIN_NAME))
+                    {
+                        AddSubQuery(ref query, "PLUGIN_NAME", plugin.PLUGIN_NAME, ref parameters);
+                    }
+                    if (!string.IsNullOrEmpty(plugin.PLUGIN_LINK))
+                    {
+                        AddSubQuery(ref query, "PLUGIN_LINK", plugin.PLUGIN_LINK, ref parameters);
+                    }
+                    if (plugin.PLUGIN_GROUP_ID.HasValue)
+                    {
+                        AddSubQuery(ref query, "PLUGIN_GROUP_ID", plugin.PLUGIN_GROUP_ID, ref parameters);
+                    }
+                    if (plugin.PLUGIN_TYPE_ID.HasValue)
+                    {
+                        AddSubQuery(ref query, "PLUGIN_TYPE_ID", plugin.PLUGIN_TYPE_ID, ref parameters);
+                    }
+                    if (!string.IsNullOrEmpty(plugin.ICON))
+                    {
+                        AddSubQuery(ref query, "ICON", plugin.ICON, ref parameters);
+                    }
+                    if (plugin.MODIFIER != null)
+                    {
+                        AddSubQuery(ref query, "MODIFIER", plugin.MODIFIER, ref parameters);
+                    }
+
+                    query += "MODIFY_TIME = @MODIFY_TIME, IS_ACTIVE = @IS_ACTIVE WHERE ID = @ID";
+
+                    parameters.Add(new MySqlParameter("@MODIFY_TIME", SMG.DateTimeHelpper.Convert.DateTimeToTimeNumber(DateTime.Now)));
+                    parameters.Add(new MySqlParameter("@IS_ACTIVE", plugin.IS_ACTIVE));
+                    parameters.Add(new MySqlParameter("@ID", plugin.ID));
+
+                    var command = new MySqlCommand(query, connection);
+                    command.Parameters.AddRange(parameters.ToArray());
+
+                    int result = command.ExecuteNonQuery();
+                    return (result > 0, error);
+                }
+            }
+            catch (MySqlException ex)
+            {
+                LogSystem.Error("Error updating plugin: " + ex.Message);
+                error = ex.Message;
+                return (false, error);
+            }
         }
 
-        // Phản hồi từ GraphQL khi cập nhật plugin
-        public class UpdatePluginResponse
+        private void AddSubQuery(ref string query, string fieldName, object fieldValue, ref List<MySqlParameter> parameters)
         {
-            public UpdatePluginData UpdatePlugin { get; set; }
+            if (fieldValue != null)
+            {
+                query += $"{fieldName} = @{fieldName}, ";
+                parameters.Add(new MySqlParameter($"@{fieldName}", fieldValue));
+            }
         }
 
-        public class UpdatePluginData
+        // Xóa Plugin
+        public async Task<(bool, string)> DeletePluginAsync(long id)
         {
-            public bool Success { get; set; }
-            public Plugins Plugin { get; set; }
+            string error = string.Empty;
+            try
+            {
+                var dbHelper = new DBHelper();
+                using (var connection = await dbHelper.OpenConnectionAsync())
+                {
+                    var command = new MySqlCommand("DELETE FROM SMN_PLUGINS WHERE ID = @ID", connection);
+                    command.Parameters.AddWithValue("@ID", id);
+
+                    int result = command.ExecuteNonQuery();
+                    return (result > 0, error);
+                }
+            }
+            catch (MySqlException ex)
+            {
+                LogSystem.Error("Error deleting plugin: " + ex.Message);
+                error = ex.Message;
+                return (false, error);
+            }
         }
-
-        public class PluginResponse
-        {
-            public List<Plugins> Plugins { get; set; }
-        }
-
-
     }
 }

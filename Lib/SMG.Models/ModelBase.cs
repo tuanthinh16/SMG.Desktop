@@ -15,6 +15,6 @@ namespace SMG.Models
         public string CREATOR { get; set; }
         public string MODIFIER { get; set; }
         public long? MODIFY_TIME { get; set; }
-        public bool IS_ACTIVE { get; set; }
+        public short IS_ACTIVE { get; set; }
     }
 }
